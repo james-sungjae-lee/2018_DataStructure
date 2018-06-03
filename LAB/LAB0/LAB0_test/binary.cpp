@@ -1,0 +1,88 @@
+#include <fstream>
+#include <string>
+#include <iostream>
+
+using namespace std;
+
+struct PlayerRecord{
+  int age;
+  int score;
+  string name;
+};
+
+int main(int argc, char const *argv[]) {
+  PlayerRecord rec;
+  rec.age = 11;
+  rec.score = 200;
+  rec.name = "John";
+
+  fstream a_file(
+    "records.bin",
+    ios::trunc | ios::binary | ios::in | ios::out
+  );
+
+  a_file.write(
+    reinterpret_cast<char*>(& rec.age),
+    sizeof(rec.age)
+  );
+
+  a_file.write(
+    reinterpret_cast<char*>(& rec.score),
+    sizeof(rec.score)
+  );
+
+int len = rec.name.length();
+a_file.write(
+  reinterpret_cast<char*>(& len),
+  sizeof(len)
+);
+
+a_file.write(
+  rec.name.c_str(),
+  rec.name.length() + 1
+);
+
+PlayerRecord in_rec;
+
+a_file.seekg(0, ios::beg);
+if (! a_file.read(
+  reinterpret_cast<char*>(& in_rec.age),
+  sizeof(in_rec.age)
+)) {
+  std::cout << "Error reading from file" << '\n';
+  return 1;
+}
+if (! a_file.read(
+  reinterpret_cast<char*>(& in_rec.score),
+  sizeof(in_rec.score)
+)) {
+  std::cout << "Error reading from file" << '\n';
+  return 1;
+}
+
+int str_len;
+
+if (! a_file.read(
+  reinterpret_cast<char*>(& str_len),
+  sizeof(str_len)
+)) {
+  std::cout << "Error reading from file" << '\n';
+  return 1;
+}
+
+if (str_len > 0 && str_len < 10000) {
+  char *p_str_buf = new char[str_len + 1];
+  if (! a_file.read(p_str_buf, str_len + 1)) {
+    delete[] p_str_buf;
+    std::cout << "Error reading from file" << '\n';
+    return 1;
+  }
+  if (p_str_buf[str_len] == 0) {
+    in_rec.name = string (p_str_buf);
+  }
+  delete[] p_str_buf;
+}
+std::cout << in_rec.age << " " << in_rec.score << " " << in_rec.name << '\n';
+
+  return 0;
+}
